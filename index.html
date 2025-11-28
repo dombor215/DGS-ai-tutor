@@ -1,0 +1,655 @@
+<!DOCTYPE html><html lang="en"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DGS AI Tutor</title>
+<style>
+  :root {
+    --primary-color: #4A90E2;
+    --secondary-color: #357ABD;
+    --user-bg: #d1e7dd;
+    --bot-bg: #ffffff;
+    --background: #f5f7fa;
+    --border-radius: 12px;
+    --shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+    --shadow-hover: 0 4px 16px rgba(0, 0, 0, 0.12);
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    margin: 0;
+    background: var(--background);
+  }
+
+  header {
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    color: white;
+    padding: 24px 20px;
+    text-align: center;
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    box-shadow: 0 2px 16px rgba(0, 0, 0, 0.15);
+    position: relative;
+  }
+
+  #chat {
+    flex: 1;
+    overflow-y: auto;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .message {
+    margin: 0;
+    padding: 14px 18px;
+    border-radius: var(--border-radius);
+    max-width: 70%;
+    box-shadow: var(--shadow);
+    line-height: 1.6;
+    word-wrap: break-word;
+    animation: fadeIn 0.3s ease-in;
+    font-size: 15px;
+  }
+
+  .user {
+    background: var(--user-bg);
+    align-self: flex-end;
+    border-bottom-right-radius: 4px;
+    white-space: pre-wrap;
+  }
+
+  .bot {
+    background: var(--bot-bg);
+    border: 1px solid #e0e0e0;
+    align-self: flex-start;
+    border-bottom-left-radius: 4px;
+  }
+
+  /* Markdown styling for bot messages */
+  .bot h1, .bot h2, .bot h3, .bot h4 {
+    margin: 16px 0 8px 0;
+    color: var(--secondary-color);
+    line-height: 1.3;
+  }
+
+  .bot h1 { font-size: 1.5em; font-weight: 700; }
+  .bot h2 { font-size: 1.3em; font-weight: 700; }
+  .bot h3 { font-size: 1.1em; font-weight: 600; }
+  .bot h4 { font-size: 1em; font-weight: 600; }
+
+  .bot h1:first-child, .bot h2:first-child, .bot h3:first-child, .bot h4:first-child {
+    margin-top: 0;
+  }
+
+  .bot p {
+    margin: 8px 0;
+  }
+
+  .bot p:first-child {
+    margin-top: 0;
+  }
+
+  .bot p:last-child {
+    margin-bottom: 0;
+  }
+
+  .bot ul, .bot ol {
+    margin: 8px 0;
+    padding-left: 24px;
+  }
+
+  .bot ul li, .bot ol li {
+    margin: 4px 0;
+  }
+
+  .bot ul {
+    list-style-type: disc;
+  }
+
+  .bot ol {
+    list-style-type: decimal;
+  }
+
+  .bot strong {
+    color: var(--secondary-color);
+    font-weight: 600;
+  }
+
+  .bot em {
+    font-style: italic;
+    color: #555;
+  }
+
+  .bot code {
+    background: #f4f4f4;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: 'Courier New', monospace;
+    font-size: 14px;
+    color: #d63384;
+  }
+
+  .bot pre {
+    background: #f4f4f4;
+    padding: 12px;
+    border-radius: 6px;
+    overflow-x: auto;
+    margin: 8px 0;
+  }
+
+  .bot pre code {
+    background: none;
+    padding: 0;
+    color: inherit;
+  }
+
+  .bot blockquote {
+    border-left: 4px solid var(--primary-color);
+    padding-left: 12px;
+    margin: 8px 0;
+    color: #666;
+    font-style: italic;
+  }
+
+  .bot a {
+    color: var(--primary-color);
+    text-decoration: none;
+  }
+
+  .bot a:hover {
+    text-decoration: underline;
+  }
+
+  .bot hr {
+    border: none;
+    border-top: 1px solid #e0e0e0;
+    margin: 12px 0;
+  }
+
+  #inputArea {
+    display: flex;
+    align-items: flex-end;
+    padding: 16px;
+    background: #fff;
+    border-top: 1px solid #e0e0e0;
+    gap: 10px;
+    box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.05);
+  }
+
+  #messageInput {
+    flex: 1;
+    padding: 12px 14px;
+    font-size: 15px;
+    border: 2px solid #e0e0e0;
+    border-radius: 10px;
+    outline: none;
+    transition: border 0.2s ease, box-shadow 0.2s ease;
+    resize: none;
+    overflow-y: auto;
+    font-family: inherit;
+    line-height: 1.5;
+    max-height: 150px;
+    min-height: 44px;
+  }
+
+  #messageInput:focus {
+    border: 2px solid var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
+  }
+
+  .button-group {
+    display: flex;
+    gap: 8px;
+    align-items: flex-end;
+  }
+
+  button {
+    padding: 12px 16px;
+    background: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 18px;
+    transition: background 0.2s ease, transform 0.1s ease, box-shadow 0.2s ease;
+    box-shadow: var(--shadow);
+    min-width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  button:hover {
+    background: var(--secondary-color);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-hover);
+  }
+
+  button:active {
+    transform: translateY(0);
+  }
+
+  #sendBtn {
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+  }
+
+  #apiBtn, #exportBtn, #importBtn {
+    background: #6c757d;
+  }
+
+  #apiBtn:hover, #exportBtn:hover, #importBtn:hover {
+    background: #5a6268;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Scrollbar styling */
+  #chat::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  #chat::-webkit-scrollbar-track {
+    background: #f1f1f1;
+  }
+
+  #chat::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 4px;
+  }
+
+  #chat::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+  }
+
+  /* Responsive adjustments */
+  @media (max-width: 600px) {
+    header {
+      font-size: 20px;
+      padding: 20px 16px;
+    }
+
+    #chat {
+      padding: 16px;
+    }
+
+    .message {
+      max-width: 85%;
+      font-size: 14px;
+    }
+
+    #messageInput {
+      font-size: 14px;
+    }
+
+    button {
+      padding: 10px 12px;
+      font-size: 16px;
+      min-width: 40px;
+      height: 40px;
+    }
+
+    #inputArea {
+      padding: 12px;
+      gap: 8px;
+    }
+  }
+</style>
+</script></head>
+<body>
+<header id="pageHeader">
+  <span id="headerTitle">DGS AI Tutor</span>
+</header>
+<div id="chat"></div>
+<div id="inputArea">
+    <textarea id="messageInput" placeholder="Type a message..." rows="1"></textarea>
+    <div class="button-group">
+      <button id="sendBtn" title="Send message" onclick="sendMessage()">➤</button>
+      <button id="apiBtn" title="Set key" onclick="setApiKey()">🔑</button>
+      <button id="exportBtn" title="Save chat">💾</button>
+      <button id="importBtn" title="Import chat">📂</button>
+    </div>
+</div>
+
+<script>
+// Initialize chat when DOM is ready
+window.addEventListener("DOMContentLoaded", () => {
+  document.getElementById("headerTitle").textContent = "DGS AI Tutor";
+  addMessage(FIRST_MESSAGE, "bot");
+});
+
+// --- Chat Logic ---
+const API_URL = "https://api.poe.com/v1/chat/completions";
+const MODEL_NAME = "Assistant";
+const FIRST_MESSAGE = `Vitaj v prostredí AI tútora predmetu Digitálna gramotnosť študenta. Cieľom tohto chatbota je postupne ťa previesť diskusiou o umelej inteligencii. Pred začiatkom tejto diskusie si nezabudni:
+
+* pozrieť si [materiál](https://drive.google.com/file/d/12FBYjTioecWkyYInHpm368yGqflrb5sq/view?usp=sharing) z Google triedy 
+* vložiť kľúč, ktorý máš od vyučujúcich predmetu
+* po ukončení si konverzáciu uložiť pomocou 💾 (stiahne sa json súbor)
+* po zatvorení okna sa konverzácia vymaže
+* ak sa chceš ku konverzácii vrátiť a dokončiť ju neskôr, môžeš uploadovať stiahnutý json pomocou 📂
+`
+const CONTENT_USER = `
+Si asistent učiteľa a tútor študentov na vysokej škole. Tvojou úlohou je viesť diskusiu so študentom na uvedené témy, pričom počas diskusie máš pokryť všetky témy z nasledujúceho zoznamu. 
+
+* Na začiatku sa pozdrav a predstav sa ako AI tútor v rámci predmetu Digitálna gramotnosť študenta, ktorého úlohou je viesť diskusiu so študentom o študijnom materiáli z Google triedy o umelej inteligencii.
+* Potom začni prechádzať jednotlivými témami. Poskytni študentovi tému tak, ako to je napísané, t.j. krátky úvod a následné otázky.
+* Veď študenta diskusiou a vždy skontroluj, či boli zodpovedané všetky otázky v rámci danej témy. Ak nie, tak sa o tom zmieň a vyzvi študenta, aby svoju odpoveď doplnil.
+* Priebežne poskytuj krátku spätnú väzbu, ktorú študent napísal, alebo nejakú reakciu. 
+* Ak je niečo hrubo nesprávne, môžeš študenta opraviť. Tvoj tón nech je ale priateľský a nech vyvoláva podporu.
+* Motivuj študenta k tomu, aby počas diskusie vyjadril svoj názor. Ak sú študentove odpovede príliš krátke alebo sa zdajú neautentické, poskytni mu doplňujúce otázky.
+* Po prediskutovaní všetkých 6 tém prejdi na krátku spätnú väzbu, ako diskusia prebehla, aký má študent prehľad o téme AI a ako by sa mohol ďalej zlepšovať alebo mohol získavať nové informácie. Na záver zhodnoť študentovu diskusiu, či boli jeho postrehy autentické, či boli jeho odpovede dostatočne prepracované.
+* Poskytni na záver sumárne hodnotenie v tvare: "**Hodnotenie diskusie:** [výborná/veľmi dobrá/dobrá/podstačujúca/nepostačujúca]"
+* Po poskytnutí hodnotenia pripomeň študentovi, aby si nezabudol uložiť konverzáciu (ikonka diskety 💾, spustí sa sťahovanie json súboru), a odovzdať ju k zadaniu v Google Triede.
+* Rozlúč sa so študentom a daj mu inštrukciu, že môže ísť.
+
+## Zoznam tém
+
+### Téma 1: Podstata a dopady ChatGPT
+
+Zo študijného materiálu si sa mohol/-la dozvedieť o tom, aký význam majú AI chatboty pre spoločnosť a čo sa za nimi skrýva. 
+
+* Čo ChatGPT znamená pre teba?
+* Čo si predstavuješ pod pojmom ChatGPT? 
+
+### Téma 2: Zodpovednosť pri používaní AI
+
+Študijný text v krátkosti reflektuje aj etickú otázku používania AI chatbotov, či už čo sa týka možných rizík alebo správnosti obsahu, ktorý generujú. 
+
+* V čom vidíš možné riziká ty? 
+* Narazil/-a si na nejaké zaujímavé prípady (vlastná skúsenosť alebo médiá), keď sa chatbot očividne mýli, "halucinuje" alebo môže byť nebezpečný? Aké to boli?
+
+### Téma 3: ChatGPT a jeho alternatívy. 
+Poskytnutý študijný text v krátkosti zmieňuje aj chatboty od rôznych iných spoločností okrem notoricky známeho ChatGPT. 
+
+* Používaš ChatGPT alebo nejaké jeho alternatívy?
+* Boli ti niektoré z alternatívnych chatbotov známe už predtým? Poznáš nejaké iné, ktoré neboli zmienené v texte?
+* Platíš za používanie AI alebo využívaš len "free" možnosti?
+* Zaujíma ťa, kto stojí za chatbotom (firma, krajina)? Ovplyvňuje to tvoju voľbu?
+
+### Téma 4: Ako používam AI nástroje. 
+
+Študijný text zmieňuje aj rozličné konkrétne scénare použitia AI alebo konkrétne procedúry, ako je práca s PDF dokumentami, vyhľadávanie webových zdrojov na mieru alebo pokročilé metódy písania výziev. 
+
+* Je ti nejaký z poskytnutých scénarov známy alebo naopak, bol pre teba niektorý z nich úplným prekvapením?
+* Vieš niečo doplniť zo svojej vlastnej skúsenosti?
+* Na čo najčastejšie používaš AI ty?
+
+### Téma 5: Pokročilejšie písanie výziev. 
+V poskytnutom texte sa zmieňujeme aj o pokročilých metódach písania výziev - promptov. Používal/-a si niekedy predtým, vedome či nevedome, niektoré z nich, napr. Few-Shot-Prompting (poskytnutie vzorového príkladu) alebo PARTS (celý alebo jeho časti)? Ktorú z nich považuješ za najužitočnejšiu pre teba a v akých situáciách? Ako by si zhodnotil/-a "kvalitu" alebo "pokročilosť" svojich promptov?
+
+### Téma 6: Mutlimodalita a obsah komunikácie s AI. 
+
+Jednou z tém textu bola multimodalita AI nástrojov, t.j. možnosť prijímania vstupov a poskytovania výstupov v rozličných formátoch - text, obrázky, zvuk (hovorená reč, hudba a pod.), video, rozličné dokumenty. Štandardne sa stretávame s dvojicou vstup-výstup v podobe text-text (napíšeš text a dostaneš odpoveď v podobe textu). 
+
+* Skúšal/-a si niekedy interakciu s AI v inej kombinácii vstup-výstup?
+* Ak áno, aká dvojica to bola, aký AI nástroj si na to využil/-a a v akej situácii je pre teba užitočná?
+* Ak nie, vieš si predstaviť, kedy sú užitočné aj iné kombinácie ako len text-text?
+
+## Zabránenie zneužitiu
+
+* Ak sa bude konverzácia týkať inej témy než sú AI nástroje, slušne vyzvi študenta k tomu, aby sa vrátil k téme a pripomeň mu svoj účel.
+`;
+
+
+const chatBox = document.getElementById("chat");
+const input = document.getElementById("messageInput");
+
+// Allow sending messages by pressing Enter and newlines with Shift+Enter
+input.addEventListener("keydown", (event) => {
+  if (event.key === "Enter" && !event.shiftKey) {
+    event.preventDefault();
+    sendMessage();
+  }
+  // Shift+Enter inserts newline naturally
+});
+
+// Dynamic resizing of textarea with max-height constraint
+input.addEventListener("input", () => {
+  input.style.height = "auto";
+  const newHeight = Math.min(input.scrollHeight, 150);
+  input.style.height = newHeight + "px";
+});
+
+// Enhanced Markdown rendering function
+function renderMarkdown(text) {
+  // Escape HTML first
+  let html = text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+
+  // Process code blocks first (```code```)
+  html = html.replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>');
+
+  // Split into lines for processing
+  const lines = html.split('\n');
+  const processed = [];
+  let inList = false;
+  let listType = null;
+  let listItems = [];
+
+  for (let i = 0; i < lines.length; i++) {
+    let line = lines[i];
+    
+    // Check for unordered list
+    const ulMatch = line.match(/^[\s]*[\*\-]\s+(.+)$/);
+    // Check for ordered list
+    const olMatch = line.match(/^[\s]*\d+\.\s+(.+)$/);
+    
+    if (ulMatch || olMatch) {
+      const content = ulMatch ? ulMatch[1] : olMatch[1];
+      const currentType = ulMatch ? 'ul' : 'ol';
+      
+      if (!inList) {
+        inList = true;
+        listType = currentType;
+        listItems = [];
+      } else if (listType !== currentType) {
+        // Different list type, close previous and start new
+        processed.push(`<${listType}>${listItems.map(item => `<li>${item}</li>`).join('')}</${listType}>`);
+        listItems = [];
+        listType = currentType;
+      }
+      
+      listItems.push(content);
+    } else {
+      // Not a list item
+      if (inList) {
+        // Close the list
+        processed.push(`<${listType}>${listItems.map(item => `<li>${item}</li>`).join('')}</${listType}>`);
+        inList = false;
+        listType = null;
+        listItems = [];
+      }
+      processed.push(line);
+    }
+  }
+  
+  // Close any open list at the end
+  if (inList) {
+    processed.push(`<${listType}>${listItems.map(item => `<li>${item}</li>`).join('')}</${listType}>`);
+  }
+  
+  html = processed.join('\n');
+
+  // Headers
+  html = html.replace(/^#### (.+)$/gm, '<h4>$1</h4>');
+  html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+  html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+  html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
+
+  // Blockquotes
+  html = html.replace(/^&gt;\s+(.+)$/gm, '<blockquote>$1</blockquote>');
+
+  // Horizontal rules
+  html = html.replace(/^[-*_]{3,}$/gm, '<hr>');
+
+  // Bold
+  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  html = html.replace(/__(.+?)__/g, '<strong>$1</strong>');
+
+  // Italic
+  html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+  html = html.replace(/_(.+?)_/g, '<em>$1</em>');
+
+  // Inline code
+  html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+
+  // Links
+  html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>');
+  
+  // Auto-link URLs (not already in links)
+  html = html.replace(/(?<!href=")(?<!">)((?:https?:\/\/)[^\s<]+)/g, '<a href="$1" target="_blank">$1</a>');
+
+  // Paragraphs (wrap non-tag lines)
+  const finalLines = html.split('\n');
+  const withParagraphs = [];
+  
+  for (let line of finalLines) {
+    const trimmed = line.trim();
+    if (trimmed === '') {
+      withParagraphs.push('');
+    } else if (trimmed.match(/^<(h[1-6]|ul|ol|pre|blockquote|hr)/)) {
+      withParagraphs.push(line);
+    } else if (!trimmed.match(/^<\/(ul|ol|li|blockquote)>$/)) {
+      withParagraphs.push(`<p>${line}</p>`);
+    } else {
+      withParagraphs.push(line);
+    }
+  }
+
+  return withParagraphs.join('\n');
+}
+
+function addMessage(content, sender) {
+  const msg = document.createElement("div");
+  msg.classList.add("message", sender);
+  if (sender === "bot") {
+    msg.innerHTML = renderMarkdown(content);
+  } else {
+    msg.textContent = content;
+  }
+  chatBox.appendChild(msg);
+  chatBox.scrollTop = chatBox.scrollHeight;
+}
+
+// local history of messages
+let messages = [{ role: "system", content: CONTENT_USER }];
+
+// Prompt-based API key entry
+function setApiKey() {
+  const key = prompt("Enter key:");
+  if (key) {
+    localStorage.setItem("api_key", key.trim());
+    alert("Key saved.");
+  }
+}
+
+// Get saved API key
+function getApiKey() {
+  return localStorage.getItem("api_key");
+}
+
+
+// Sending user message
+async function sendMessage() {
+  const userMessage = input.value.trim();
+  if (!userMessage) return;
+
+  addMessage(userMessage, "user");
+  messages.push({ role: "user", content: userMessage });
+  input.value = "";
+  input.style.height = "auto";
+
+  const apiKey = getApiKey();
+  if (!apiKey) {
+    addMessage("⚠️ Please insert the key (click 🔑).", "bot");
+    return;
+  }
+
+  try {
+    const response = await fetch(API_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model: MODEL_NAME,
+        messages: messages
+      })
+    });
+
+    const data = await response.json();
+    const botReply = data.choices?.[0]?.message?.content || "No response.";
+    addMessage(botReply, "bot");
+    messages.push({ role: "assistant", content: botReply });
+  } catch (error) {
+    console.error("Error:", error);
+    addMessage("❌ Error: Could not connect to API.", "bot");
+  }
+}
+
+document.getElementById("exportBtn").addEventListener("click", () => {
+  try {
+    const chatData = JSON.stringify(messages, null, 2);
+    const file = new Blob([chatData], { type: "application/json" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(file);
+    a.download = "chat_export.json";
+    a.click();
+    URL.revokeObjectURL(a.href);
+  } catch (error) {
+    console.error("Export failed:", error);
+    alert("❌ Failed to export chat.");
+  }
+});
+
+document.getElementById("importBtn").addEventListener("click", async () => {
+  try {
+    if (window.showOpenFilePicker) {
+      const [fileHandle] = await window.showOpenFilePicker({
+        types: [{ description: "JSON Files", accept: { "application/json": [".json"] } }],
+        multiple: false
+      });
+      const file = await fileHandle.getFile();
+      const text = await file.text();
+      const importedMessages = JSON.parse(text);
+      if (Array.isArray(importedMessages)) {
+        messages = importedMessages;
+        chatBox.innerHTML = "";
+        importedMessages.forEach(m => {
+          if (m.role !== "system") {
+            addMessage(m.content, m.role === "user" ? "user" : "bot");
+          }
+        });
+      } else {
+        alert("❌ Invalid chat file.");
+      }
+    } else {
+      alert("⚠️ File import not supported in this browser.");
+    }
+  } catch (error) {
+    console.error("Import failed:", error);
+    alert("❌ Failed to import chat.");
+  }
+});
+</script>
+
+
+
+</body></html>
