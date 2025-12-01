@@ -39,6 +39,23 @@
     position: relative;
   }
 
+  .copyright {
+    font-size: 12px;
+    font-weight: 400;
+    margin-top: 8px;
+    opacity: 0.9;
+  }
+
+  .copyright a {
+    color: white;
+    text-decoration: none;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.5);
+  }
+
+  .copyright a:hover {
+    border-bottom: 1px solid white;
+  }
+
   #chat {
     flex: 1;
     overflow-y: auto;
@@ -120,7 +137,6 @@
   }
 
   .bot strong {
-    color: var(--secondary-color);
     font-weight: 600;
   }
 
@@ -240,17 +256,17 @@
     transform: translateY(0);
   }
 
-  #sendBtn {
+  #sendBtn, #apiBtn, #exportBtn, #importBtn {
     background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
   }
 
-  #apiBtn, #exportBtn, #importBtn {
-    background: #6c757d;
-  }
+  /* #apiBtn, #exportBtn, #importBtn {
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+  } */
 
-  #apiBtn:hover, #exportBtn:hover, #importBtn:hover {
+  /* #apiBtn:hover, #exportBtn:hover, #importBtn:hover {
     background: #5a6268;
-  }
+  } */
 
   @keyframes fadeIn {
     from { opacity: 0; transform: translateY(10px); }
@@ -312,6 +328,7 @@
 <body>
 <header id="pageHeader">
   <span id="headerTitle">DGS AI Tutor</span>
+  <div class="copyright">© 2025 Dominik Borovský & Jozef Hanč, v1.0</div> <!--[<a href="https://github.com/dombor215/DGS-ai-tutor" target="https://github.com/dombor215/DGS-ai-tutor">Github page</a>]-->
 </header>
 <div id="chat"></div>
 <div id="inputArea">
@@ -326,7 +343,10 @@
 
 <script>
 // Initialize chat when DOM is ready
+let sessionStartTime = null;
+
 window.addEventListener("DOMContentLoaded", () => {
+  sessionStartTime = new Date().toISOString();
   document.getElementById("headerTitle").textContent = "DGS AI Tutor";
   addMessage(FIRST_MESSAGE, "bot");
 });
@@ -334,17 +354,20 @@ window.addEventListener("DOMContentLoaded", () => {
 // --- Chat Logic ---
 const API_URL = "https://api.poe.com/v1/chat/completions";
 const MODEL_NAME = "Assistant";
-const FIRST_MESSAGE = `Vitaj v prostredí AI tútora predmetu Digitálna gramotnosť študenta. Cieľom tohto chatbota je postupne ťa previesť diskusiou o umelej inteligencii. Pred začiatkom tejto diskusie si nezabudni:
+const API_FIRST_PART = "bYfK1g8qs5jyqobpNkxCvgDXw0RSKnMaCbXzD5x";
+const MATERIAL_LINK = "https://drive.google.com/file/d/12FBYjTioecWkyYInHpm368yGqflrb5sq/view?usp=sharing"
+const FIRST_MESSAGE = `Vitaj v prostredí AI tútora predmetu Digitálna gramotnosť študenta. Cieľom tohto chatbota je postupne ťa previesť diskusiou o umelej inteligencii. Pred začiatkom tejto diskusie nezabudni:
 
-* pozrieť si [materiál](https://drive.google.com/file/d/12FBYjTioecWkyYInHpm368yGqflrb5sq/view?usp=sharing) z Google triedy 
-* vložiť kľúč, ktorý máš od vyučujúcich predmetu
-* po ukončení si konverzáciu uložiť pomocou 💾 (stiahne sa json súbor)
-* po zatvorení okna sa konverzácia vymaže
-* ak sa chceš ku konverzácii vrátiť a dokončiť ju neskôr, môžeš uploadovať stiahnutý json pomocou 📂
+* preštudovať si [**materiál**](${MATERIAL_LINK}) z Google triedy 
+* vložiť kľúč 🔑, ktorý máš od vyučujúcich predmetu
+* po ukončení si uložiť konverzáciu pomocou 💾 (stiahne sa .json súbor)
+* ak sa chceš ku konverzácii vrátiť, môžeš uploadovať stiahnutý .json pomocou 📂
+**POZOR:** po zatvorení okna sa konverzácia vymaže.
 `
 const CONTENT_USER = `
 Si asistent učiteľa a tútor študentov na vysokej škole. Tvojou úlohou je viesť diskusiu so študentom na uvedené témy, pričom počas diskusie máš pokryť všetky témy z nasledujúceho zoznamu. 
 
+* Odpovede formátuj v Markdown.
 * Na začiatku sa pozdrav a predstav sa ako AI tútor v rámci predmetu Digitálna gramotnosť študenta, ktorého úlohou je viesť diskusiu so študentom o študijnom materiáli z Google triedy o umelej inteligencii.
 * Potom začni prechádzať jednotlivými témami. Poskytni študentovi tému tak, ako to je napísané, t.j. krátky úvod a následné otázky.
 * Veď študenta diskusiou a vždy skontroluj, či boli zodpovedané všetky otázky v rámci danej témy. Ak nie, tak sa o tom zmieň a vyzvi študenta, aby svoju odpoveď doplnil.
@@ -355,6 +378,13 @@ Si asistent učiteľa a tútor študentov na vysokej škole. Tvojou úlohou je v
 * Poskytni na záver sumárne hodnotenie v tvare: "**Hodnotenie diskusie:** [výborná/veľmi dobrá/dobrá/podstačujúca/nepostačujúca]"
 * Po poskytnutí hodnotenia pripomeň študentovi, aby si nezabudol uložiť konverzáciu (ikonka diskety 💾, spustí sa sťahovanie json súboru), a odovzdať ju k zadaniu v Google Triede.
 * Rozlúč sa so študentom a daj mu inštrukciu, že môže ísť.
+
+## Kritériá hodnotenia
+* Výborná - Všetky témy pokryté, odpovede autentické, prepracované, študent preukázal hlboké porozumenie
+* Veľmi dobrá - Všetky témy pokryté, väčšina odpovedí prepracovaná, občasné potreby doplňujúcich otázok
+* Dobrá - Všetky témy pokryté, odpovede stručné ale relevantné
+* Podstačujúca - Niektoré témy pokryté povrchne, študent potreboval výrazné vedenie
+* Nepostačujúca - Študent sa vyhýbal témam alebo poskytoval irelevantné odpovede
 
 ## Zoznam tém
 
@@ -559,9 +589,14 @@ function setApiKey() {
   }
 }
 
-// Get saved API key
+// // Get saved API key
+// function getApiKey() {
+//   return localStorage.getItem("api_key");
+// }
+
 function getApiKey() {
-  return localStorage.getItem("api_key");
+  const key = localStorage.getItem("api_key");
+  return key ? API_FIRST_PART + key : null;
 }
 
 
@@ -606,7 +641,12 @@ async function sendMessage() {
 
 document.getElementById("exportBtn").addEventListener("click", () => {
   try {
-    const chatData = JSON.stringify(messages, null, 2);
+    const exportData = {
+      sessionStartTime: sessionStartTime,
+      exportTime: new Date().toISOString(),
+      messages: messages
+    };
+    const chatData = JSON.stringify(exportData, null, 2);
     const file = new Blob([chatData], { type: "application/json" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(file);
@@ -628,7 +668,11 @@ document.getElementById("importBtn").addEventListener("click", async () => {
       });
       const file = await fileHandle.getFile();
       const text = await file.text();
-      const importedMessages = JSON.parse(text);
+      const importedData = JSON.parse(text);
+      
+      // Handle both old format (array) and new format (object with messages)
+      const importedMessages = Array.isArray(importedData) ? importedData : (importedData.messages || []);
+      
       if (Array.isArray(importedMessages)) {
         messages = importedMessages;
         chatBox.innerHTML = "";
