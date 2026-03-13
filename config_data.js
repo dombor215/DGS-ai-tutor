@@ -1,5 +1,5 @@
 const headerTitle = "DGS AI Tutor";
-const copyrightText = "© 2026 Dominik Borovský & Jozef Hanč, v1.1";
+const copyrightText = "© 2026 Dominik Borovský & Jozef Hanč, v1.2";
 const API_URL = "https://api.poe.com/v1/chat/completions"; // you may adjust this part based on your prefered AI provider
 const MODEL_NAME = "Assistant"; // you may adjust this part based on your prefered AI provider
 const API_FIRST_PART = "bYfK1g8qs5jyqobpNkxCvgDXw0RSKnMaCbXzD5x"; //fill only part of api and the rest use as a password  to your app
