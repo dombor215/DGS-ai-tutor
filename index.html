@@ -1,6 +1,7 @@
 <!DOCTYPE html><html lang="en"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DGS AI Tutor</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,
 %3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E
 %3Crect width='100' height='100' rx='20' fill='%230256d1'/%3E
@@ -9,7 +10,7 @@
 %3Crect x='47' y='35' width='6' height='25' fill='white'/%3E
 %3Ccircle cx='50' cy='65' r='4' fill='%230256d1'/%3E
 %3C/svg%3E">
-<title>DGS AI Tutor</title>
+
 
 <!-- JSZip for Office/ODF extraction -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -42,20 +43,23 @@
   header {
     background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
     color: white;
-    padding: 24px 20px;
+    padding: 10px 16px;
     text-align: center;
-    font-size: 24px;
+    font-size: 18px;
     font-weight: 700;
     letter-spacing: 0.5px;
-    box-shadow: 0 2px 16px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
     position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
   }
 
   .copyright {
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 400;
-    margin-top: 8px;
-    opacity: 0.9;
+    opacity: 0.85;
   }
 
   #chat {
@@ -118,15 +122,23 @@
     border-bottom-left-radius: 4px;
   }
 
-  .bot.processing { position: relative; overflow: hidden; }
+  .bot.processing {
+    position: relative;
+    overflow: visible;
+    padding: 16px 20px;
+    min-height: 48px;
+    display: flex;
+    align-items: center;
+  }
 
   .typing {
     display: inline-flex;
     align-items: center;
     gap: 6px;
+    line-height: 1;
   }
 
-  .dots { display: inline-flex; gap: 4px; padding: 2px 0; }
+  .dots { display: inline-flex; gap: 4px; padding: 0; line-height: 1; }
   .dot {
     width: 7px; height: 7px; border-radius: 999px;
     background: #94a3b8; opacity: 0.35;
@@ -181,6 +193,24 @@
     border-radius: 6px;
     overflow-x: auto;
     margin: 8px 0;
+  }
+
+  /* ========= Timestamp ========= */
+  .message-timestamp {
+    font-size: 11px;
+    margin-top: 8px;
+    line-height: 1;
+    opacity: 0.75;
+    user-select: none;
+    letter-spacing: 0.2px;
+  }
+  .user .message-timestamp {
+    text-align: right;
+    color: #5a8a6a;
+  }
+  .bot .message-timestamp {
+    text-align: left;
+    color: #aaa;
   }
 
   /* ========= Input Area ========= */
@@ -254,7 +284,7 @@
   #inputRow {
     display: flex;
     align-items: flex-end;
-    padding: 16px;
+    padding: 8px;
     gap: 10px;
   }
 
@@ -305,7 +335,7 @@
     font-size: 11px;
     color: #aaa;
     text-align: center;
-    padding: 0 16px 8px;
+    padding: 0 4px 4px;
   }
 
   /* ========= Overlays & Modals ========= */
@@ -611,12 +641,38 @@ let lastDrawY = 0;
 let currentPenColor = '#000';
 let isEraserActive = false;
 
+// ===================== Timestamp Helpers =====================
+function formatTimestamp(isoString) {
+  if (!isoString) return "";
+  var date = new Date(isoString);
+  if (isNaN(date.getTime())) return "";
+  var now = new Date();
+  var isToday = date.toDateString() === now.toDateString();
+  var timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  if (isToday) return timeStr;
+  var dateStr = date.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
+  return dateStr + ', ' + timeStr;
+}
+
+function createTimestampEl(timestamp) {
+  var el = document.createElement("div");
+  el.className = "message-timestamp";
+  el.textContent = formatTimestamp(timestamp);
+  el.setAttribute("data-iso", timestamp);
+  return el;
+}
+
 // ===================== Init =====================
 window.addEventListener("DOMContentLoaded", () => {
   sessionStartTime = new Date().toISOString();
   document.getElementById("headerTitle").textContent = "DGS AI Tutor";
-  messages = [{ role: "system", content: CONTENT_USER }];
-  addMessage(FIRST_MESSAGE, "bot");
+  messages = [
+    { role: "system", content: CONTENT_USER, timestamp: sessionStartTime }
+  ];
+  if (typeof FIRST_MESSAGE !== 'undefined' && FIRST_MESSAGE) {
+    messages.push({ role: "assistant", content: FIRST_MESSAGE, timestamp: sessionStartTime });
+    addMessage(FIRST_MESSAGE, "bot", null, sessionStartTime);
+  }
   initDrawCanvas();
 });
 
@@ -1276,7 +1332,7 @@ async function typesetMath(element) {
 }
 
 // ===================== Messages =====================
-function addMessage(content, sender, attachments) {
+function addMessage(content, sender, attachments, timestamp) {
   const msg = document.createElement("div");
   msg.classList.add("message", sender);
 
@@ -1314,6 +1370,11 @@ function addMessage(content, sender, attachments) {
     });
   }
 
+  // Append timestamp
+  if (timestamp) {
+    msg.appendChild(createTimestampEl(timestamp));
+  }
+
   chatBox.appendChild(msg);
   chatBox.scrollTop = chatBox.scrollHeight;
 
@@ -1325,22 +1386,16 @@ function addMessage(content, sender, attachments) {
 function addProcessingMessage() {
   const msg = document.createElement("div");
   msg.classList.add("message", "bot", "processing");
-  msg.innerHTML = `
-    <div class="typing" aria-label="Assistant is typing">
-      <span class="dots" aria-hidden="true">
-        <span class="dot"></span>
-        <span class="dot"></span>
-        <span class="dot"></span>
-      </span>
-    </div>
-  `;
+  msg.innerHTML = '<div class="typing" aria-label="Assistant is typing"><span class="dots" aria-hidden="true"><span class="dot"></span><span class="dot"></span><span class="dot"></span></span></div>';
   chatBox.appendChild(msg);
   chatBox.scrollTop = chatBox.scrollHeight;
   return msg;
 }
 
-async function typeBotMessage(element, fullText) {
+async function typeBotMessage(element, fullText, timestamp) {
   element.classList.remove("processing");
+  element.style.display = "";
+  element.style.minHeight = "";
   element.innerHTML = "";
 
   const textEl = document.createElement("div");
@@ -1367,6 +1422,12 @@ async function typeBotMessage(element, fullText) {
 
   cursor.remove();
   element.innerHTML = renderMarkdown(fullText);
+
+  // Append timestamp after rendering final content
+  if (timestamp) {
+    element.appendChild(createTimestampEl(timestamp));
+  }
+
   chatBox.scrollTop = chatBox.scrollHeight;
   await typesetMath(element);
 }
@@ -1402,7 +1463,8 @@ async function sendMessage() {
   if (!userMessage && !attachedFiles.length) return;
 
   const currentAttachments = [...attachedFiles];
-  addMessage(userMessage, "user", currentAttachments);
+  const userTimestamp = new Date().toISOString();
+  addMessage(userMessage, "user", currentAttachments, userTimestamp);
 
   // Build API content
   let apiContent;
@@ -1421,14 +1483,15 @@ async function sendMessage() {
     apiContent = userMessage;
   }
 
-  messages.push({ role: "user", content: apiContent });
+  messages.push({ role: "user", content: apiContent, timestamp: userTimestamp });
   input.value = "";
   input.style.height = "auto";
   clearAttachments();
 
   const apiKey = getApiKey();
   if (!apiKey) {
-    addMessage("⚠️ Please insert the key (click 🔑).", "bot");
+    const noKeyTimestamp = new Date().toISOString();
+    addMessage("⚠️ Please insert the key (click 🔑).", "bot", null, noKeyTimestamp);
     return;
   }
 
@@ -1444,22 +1507,27 @@ async function sendMessage() {
       },
       body: JSON.stringify({
         model: MODEL_NAME,
-        messages: messages
+        messages: messages.map(m => ({ role: m.role, content: m.content }))
       })
     });
 
     const data = await response.json();
     const botReply = data.choices?.[0]?.message?.content || "No response.";
+    const botTimestamp = new Date().toISOString();
 
-    await typeBotMessage(currentTypingEl, botReply);
-    messages.push({ role: "assistant", content: botReply });
+    await typeBotMessage(currentTypingEl, botReply, botTimestamp);
+    messages.push({ role: "assistant", content: botReply, timestamp: botTimestamp });
   } catch (error) {
     console.error("Error:", error);
+    const errorTimestamp = new Date().toISOString();
     if (currentTypingEl) {
       currentTypingEl.classList.remove("processing");
+      currentTypingEl.style.display = "";
+      currentTypingEl.style.minHeight = "";
       currentTypingEl.innerHTML = renderMarkdown("❌ Error: Could not connect to API.");
+      currentTypingEl.appendChild(createTimestampEl(errorTimestamp));
     } else {
-      addMessage("❌ Error: Could not connect to API.", "bot");
+      addMessage("❌ Error: Could not connect to API.", "bot", null, errorTimestamp);
     }
   } finally {
     currentTypingEl = null;
@@ -1658,7 +1726,14 @@ document.getElementById("exportBtn").addEventListener("click", () => {
     const file = new Blob([chatData], { type: "application/json" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(file);
-    a.download = "chat_export.json";
+    var now = new Date();
+	var ts = now.getFullYear() + '-'
+	  + String(now.getMonth() + 1).padStart(2, '0') + '-'
+	  + String(now.getDate()).padStart(2, '0') + '_'
+	  + String(now.getHours()).padStart(2, '0') + '-'
+	  + String(now.getMinutes()).padStart(2, '0') + '-'
+	  + String(now.getSeconds()).padStart(2, '0');
+	a.download = "chat_export_" + ts + ".json";
     a.click();
     URL.revokeObjectURL(a.href);
   } catch (error) {
@@ -1683,11 +1758,23 @@ document.getElementById("importBtn").addEventListener("click", async () => {
       if (Array.isArray(importedMessages)) {
         messages = importedMessages;
         chatBox.innerHTML = "";
+
+        // Restore sessionStartTime if available
+        if (importedData.sessionStartTime) {
+          sessionStartTime = importedData.sessionStartTime;
+        }
+
         importedMessages.forEach(m => {
           if (m.role !== "system") {
-            addMessage(typeof m.content === "string" ? m.content : "(multimodal content)", m.role === "user" ? "user" : "bot");
+            addMessage(
+              typeof m.content === "string" ? m.content : "(multimodal content)",
+              m.role === "user" ? "user" : "bot",
+              null,
+              m.timestamp || null
+            );
           }
         });
+        showToast("✅ Chat imported successfully.");
       } else {
         showToast("❌ Invalid chat file.");
       }
@@ -1705,7 +1792,6 @@ document.getElementById("headerTitle").textContent = headerTitle;
 document.querySelector(".copyright").textContent = copyrightText;
 document.title = headerTitle;
 </script>
-
 
 
 </body></html>
